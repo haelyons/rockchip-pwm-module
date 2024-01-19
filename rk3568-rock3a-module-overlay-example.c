@@ -20,37 +20,37 @@ static int module_overlay_probe(struct platform_device *platdev)
 {
     int ret;
 
-    pr_info("[MODULE] Probing\n");
+    pr_info("[LEDSTRIP] Probing\n");
 
-    pwm = pwm_request(pwm_id, "pwm");
+    pwm = pwm_request(pwm_id, "pwm9");
     if (IS_ERR(pwm)) {
-        pr_err("[MODULE] Failed to request PWM%d\n", pwm_id);
+        pr_err("[LEDSTRIP] Failed to request PWM%d\n", pwm_id);
         return PTR_ERR(pwm);
     }
 
-    pr_info("[MODULE] PWM requested\n");
+    pr_info("[LEDSTRIP] PWM requested\n");
 
     ret = pwm_config(pwm, duty_ns, period_ns);
     if (ret) {
-        pr_err("[MODULE] Failed to configure PWM%d\n", pwm_id);
+        pr_err("[LEDSTRIP] Failed to configure PWM%d\n", pwm_id);
         pwm_free(pwm);
         return ret;
     }
 
-    pr_info("[MODULE] PWM configured\n");
+    pr_info("[LEDSTRIP] PWM configured\n");
 
     pwm_enable(pwm);
-    pr_info("[MODULE] PWM enabled\n");
+    pr_info("[LEDSTRIP] PWM enabled\n");
     return 0;
 }
 
 static int module_overlay_remove(struct platform_device *platdev)
 {
     pwm_disable(pwm);
-    pr_info("[MODULE] PWM disabled\n");
+    pr_info("[LEDSTRIP] PWM disabled\n");
 
     pwm_free(pwm);
-    pr_info("[MODULE] PWM freed\n");
+    pr_info("[LEDSTRIP] PWM freed\n");
     return 0;
 }
 
@@ -59,7 +59,7 @@ static const struct of_device_id module_overlay_of_match[] = {
 	{},
 };
 MODULE_DEVICE_TABLE(of, module_overlay_of_match);
-
+ 
 static struct platform_driver module_overlay_driver = {
     .driver = {
         .name = "module-overlay",
@@ -70,9 +70,25 @@ static struct platform_driver module_overlay_driver = {
     .remove = module_overlay_remove,
 };
 
-module_platform_driver(module_overlay_driver);
+static int __init module_overlay_init(void)
+{
+    pr_info("[LEDSTRIP] Module loaded\n");
+    return platform_driver_register(&module_overlay_driver);
+}
+
+// Function called when the module is removed
+static void __exit module_overlay_exit(void)
+{
+    pr_info("[LEDSTRIP] Module unloaded\n");
+    platform_driver_unregister(&module_overlay_driver);
+}
+
+module_init(module_overlay_init);
+module_exit(module_overlay_exit);
+
+//module_platform_driver(module_overlay_driver);
+
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Flat Max");
+MODULE_AUTHOR("Max Flat / Helios Lyons");
 MODULE_DESCRIPTION("buildroot.rockchip module overlay example");
 MODULE_ALIAS("platform:module-overlay-rk3308");
-
