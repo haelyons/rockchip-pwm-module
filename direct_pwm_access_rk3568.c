@@ -3,7 +3,7 @@
     PrimeCell DMA Controller (PL330) Technical Reference:
     https://developer.arm.com/documentation/ddi0424/a/
 
-    Collated ARM SoC Device Assignment Notes: (thank you whoever made this)
+    Collated ARM SoC Device Assignment Notes
     https://cwshu.github.io/arm_virt_notes/notes/dma/pl330.html
     
 */
@@ -32,7 +32,7 @@
 #define DMAC0_NS    0xFE530000 // DMA Base address (placeholder, use your actual)
 #define PWM2_BASE   0xFE6F0000 
 
-// Offsets for PWM2 registers - from your descriptions
+// Offsets for PWM2 registers
 #define PWM2_PERIOD_OFFSET  0x0024 
 #define PWM2_DUTY_OFFSET    0x0028
 #define PWM2_CTRL_OFFSET    0x002C 
