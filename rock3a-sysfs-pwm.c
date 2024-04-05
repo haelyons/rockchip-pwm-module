@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <string.h>
+#include <sys/types.h>
 
 #define PWM_PATH "/sys/class/pwm/pwmchip9/pwm0/"
 
@@ -214,10 +216,10 @@ int send_pulse(int high_time_ns, int low_time_ns)
     int period_ns = high_time_ns + low_time_ns;
     int duty_cycle_ns = high_time_ns;
 
-    buffer_command("period", period_ns);
+    //buffer_command("period", period_ns);
     buffer_command("duty_cycle", duty_cycle_ns);
-    buffer_command("enable", 0);
-    buffer_command("enable", 1);
+    //buffer_command("enable", 0);
+    //buffer_command("enable", 1);
 
     /*
     // set period
@@ -342,13 +344,102 @@ int main() {
     }
     fprintf(stdout, "\n");
 
-    /* MAIN LOOP */
-    while (1) 
-    {
-        fprintf(stdout, "\nSending frame...\n");
-        send_frame(pb, PB_SIZE);
+    buffer_command("period", 1200);
+    buffer_command("enable", 1);
+    
+    flush_buffer();
 
-        /*
+    const char *duty_cycle_path = "/sys/class/pwm/pwmchip9/pwm0/duty_cycle";
+    const char *enable_path = "/sys/class/pwm/pwmchip9/pwm0/enable";
+    const char *period_path = "/sys/class/pwm/pwmchip9/pwm0/period";
+
+    // use unbufferred system calls open(), write() instead of buffered fopen(), fwrite()
+    // O_WRONLY opens for writing only
+    FILE *enable_file = open(enable_path, O_WRONLY);
+    if (enable_file < 0)
+    {
+        fprintf(stdout, "Failed to open enable file");
+    }
+
+    FILE *period_file = open(period_path, O_WRONLY);
+    if (period_file < 0)
+    {
+        fprintf(stdout, "Failed to open period file");
+    }
+    
+    FILE *duty_file = open(duty_cycle_path, O_WRONLY);
+    if (duty_file < 0) 
+    {
+        perror("Failed to open duty_cycle file");
+        return -1;
+    }
+    //setbuf( duty_file, NULL );
+    fprintf(stdout, "\nSending frame...\n");
+
+    char *pbuf = "1200";
+    char *ebuf = "1";
+
+    if (write(enable_file, ebuf, strlen(ebuf)) < 0)
+    {
+        fprintf(stdout, "Failed to write to enable file\n");
+    }
+
+    if (write(period_file, pbuf, strlen(pbuf)) < 0)
+    {
+        fprintf(stdout, "Failed to write to period file\n");
+    }
+    int i = 0;
+    while (i < 10)
+    {
+        char *dbuf = "300";
+        if (write(duty_file, dbuf, strlen(pbuf)) < 0)
+        {
+            printf("Failed to write to period file\n");
+        }
+        printf("Unbuffered syscall: 300\n");
+        dbuf = "0";
+        if (write(duty_file, dbuf, strlen(pbuf)) < 0)
+        {
+            printf("Failed to write to period file\n");
+        }
+        printf("Unbuffered syscall: 0\n");
+        dbuf = "600";
+        if (write(duty_file, dbuf, strlen(pbuf)) < 0)
+        {
+            printf("Failed to write to period file\n");
+        }
+        printf("Unbuffered syscall: 600\n");
+        i++;
+    }
+
+    close(duty_file);
+    return 0;
+}
+
+        /* COMMENTS TO BE SORTED
+        buffer_command("duty_cycle", 300);
+        buffer_command("duty_cycle", 600);
+        buffer_command("duty_cycle", 300);
+        buffer_command("duty_cycle", 600);
+
+        char tmp[128];
+        int len = snprintf(tmp, sizeof(tmp), "echo %d > %s%s\n", value, PWM_PATH, filename);
+        
+        if (buffer_index + len < SB_SIZE) 
+        {
+            strcpy(&cmd_buf[buffer_index], tmp);
+            buffer_index += len;
+        } 
+        else 
+        {
+            fprintf(stdout, "[REMORA PWM] flushing command buffer for tmp at index %d \n", buffer_index);
+            flush_buffer();
+        }
+        
+        //send_frame(pb, PB_SIZE);
+       
+
+        
         // WRITE WHITE TO ALL LEDs
         for (int n = 0; n < 60; n++)
         {
@@ -363,7 +454,7 @@ int main() {
 
         printf("Current buffer length=%d\n", buffer_index);
         flush_buffer();
-        */
+ 
         
 
         // Data refresh cycles are organised so that groups of 24 bit signals are sent in groups of 3
@@ -376,15 +467,15 @@ int main() {
         // The reset signal between each data refresh cycle is MINIMUM 50 us, this post reports
         // that it can be significantly longer, so we need to ensure that we can at least send 72 bits
 
-        /*
+  
         // 1 bit pulse: high for ~600ns, low for ~600ns
         send_pulse(600, 600);
         // 0 bit pulse: high for ~300ns, low for ~900ns
         send_pulse(300, 900);
         send_pulse(0, 500);
-        */
 
-        /*
+
+
         UPDATE 15/12/23 -- 180 bits sent over 217.772uS (each bit approx. 1.208uS)
         This means we meet the minimum sample window (72 ledstrip address bits) but we may not meet it
         in terms of accuracy. 
@@ -392,7 +483,3 @@ int main() {
         It looks like there's variability in the actual duty cycles of the bits, from 584ns to
         624ns.
         */
-    }
-
-    return 0;
-}
